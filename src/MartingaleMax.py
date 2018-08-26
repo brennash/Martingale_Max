@@ -15,8 +15,10 @@ class MartingaleMax:
 
 
 	def run(self, directory, oddsLimit, oddsBounds):
+		# Read in the fixtures
 		self.readFixtures(directory)
 
+		# Process the odds
 		self.processOdds(oddsLimit, oddsBounds)
 
 
@@ -55,10 +57,23 @@ class MartingaleMax:
 
 
 	def processOdds(self, oddsLimit, oddsBounds):
-
+		inRangeFixtures = []
 		for fixture in self.fixtures:
 			if fixture.inOddsRange(oddsLimit, oddsBounds):
 				fixture.printFixture()
+				inRangeFixtures.append(fixture)
+
+		sortedList = sorted(inRangeFixtures, key=lambda fixture: fixture.getDate(), reverse=False)
+
+		pot = 0.0
+		for fixture in sortedList:
+			if fixture.isHomeWin():
+				odds  = fixture.getLowestOdds()
+				pot  += (odds-1.0)
+				print('Win,',pot)
+			else:
+				print('Lose',pot-1.0)
+
 
 class Fixture:
 
@@ -82,8 +97,6 @@ class Fixture:
 					self.awayFT = int(dataTokens[index])
 				elif element == 'FTR':
 					self.resultFT = dataTokens[index]
-
-
 				elif element == 'BWH' and len(dataTokens[index]) > 0:
 					self.homeOdds.append(float(dataTokens[index]))
 				elif element == 'LBH' and len(dataTokens[index]) > 0:
@@ -94,22 +107,26 @@ class Fixture:
 					self.homeOdds.append(float(dataTokens[index]))
 				elif element == 'B365H' and len(dataTokens[index]) > 0:
 					self.homeOdds.append(float(dataTokens[index]))
-#				elif element == 'LBH':
-#					self.lbh      = float(dataTokens[index])
-#				elif element == 'WHH':
-#					self.whh      = float(dataTokens[index])
-#				elif element == 'BWA':
-#					self.bwa      = float(dataTokens[index])
-#				elif element == 'LBA':
-#					self.lba      = float(dataTokens[index])
-#				elif element == 'WHA':
-#					self.wha      = float(dataTokens[index])
 				self.valid = True
 		except Exception as error:
 			print(filename, header, data, error)
 
+	def getDate(self):
+		return self.date
+
 	def isValid(self):
 		return self.valid
+
+	def getResult(self):
+		return self.resultFT
+
+	def isHomeWin(self):
+		if self.resultFT == 'H':
+			return True
+		return False
+
+	def getLowestOdds(self):
+		return min(self.homeOdds)
 
 	def inOddsRange(self, odds, oddsBound):
 		lowerLimit =  float(odds) - float(oddsBound)
@@ -119,7 +136,6 @@ class Fixture:
 			return True
 		else:
 			return False
-
 
 	def printFixture(self):
 		outputString  = '{0},'.format(self.date.strftime('%Y%m%d'))
