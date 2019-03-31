@@ -17,6 +17,11 @@ class Fixture:
 		date    = datetime.datetime.strptime(dateStr, '%d/%m/%y')
 		return date
 
+	def getDateStr(self):
+		dateStr = self.getElement('Date')
+		date    = datetime.datetime.strptime(dateStr, '%d/%m/%y')
+		return date.strftime('%Y-%m-%d')
+
 	def getResult(self):
 		return self.getElement('FTR')
 
