@@ -78,14 +78,33 @@ class Fixture:
 		results  = []
 		homeOdds = [ 'B365H','BWH','IWH','LBH','WHH','PSH','WHH','VCH' ]
 		for headerName in homeOdds:
-			odds = self.getElement(headerName)
+			odds = self.getFloatElement(headerName)
 			if odds is not None:
 				results.append(odds)
 		return results
+
+	def getWorstHomeOdds(self):
+		try:
+			oddsList = self.getHomeOddsList()
+			if oddsList is None:
+				return None
+			else:
+				oddsList.sort()
+				return oddsList[0]
+		except:
+			return None
+
 
 	def getElement(self, elementName):
 		try:
 			index = self.header.index(elementName.strip().upper())
 			return self.data[index]
+		except:
+			return None
+
+	def getFloatElement(self, elementName):
+		try:
+			index = self.header.index(elementName.strip().upper())
+			return float(self.data[index])
 		except:
 			return None

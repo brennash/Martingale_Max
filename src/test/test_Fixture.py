@@ -58,6 +58,12 @@ class Test(unittest.TestCase):
 		result  = fixture.getStdDevHomeOdds()
 		self.assertTrue(result > 0.0)
 
+	def test_getWorstHomeOdds_1(self):
+		header = ['Div','Date','HomeTeam','AwayTeam','FTHG','FTAG','FTR','HTHG','HTAG','HTR','B365H','LBH','WHH']
+		data   = ['E0','11/08/17','Arsenal','Leicester','4','3','H','2','2','D',2.0,1.3,1.75]
+		fixture = Fixture(header, data)
+		result  = fixture.getWorstHomeOdds()
+		self.assertEquals(result, 1.3)
 
 def main():
     unittest.main()
