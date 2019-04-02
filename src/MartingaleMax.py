@@ -2,6 +2,7 @@ import os
 import re
 import csv
 import sys
+import time
 import random
 import datetime
 from Fixture import Fixture
@@ -97,65 +98,76 @@ class MartingaleMax:
 	def createValueMapping(self):
 		self.valueMapping = ValueMapping()
 		for fixture in self.trainFixtures:
-			odds   = fixture.getAvgHomeOdds()
+			odds   = fixture.getWorstHomeOdds()
 			std    = fixture.getStdDevHomeOdds()
 			result = fixture.getResult()
 			date   = fixture.getDate()
 
 			self.valueMapping.addElement(odds, std, result)
 		self.valueMapping.calculate()
+		#self.valueMapping.printMatrix()
 
 
 	def processValueBets(self):
 
-		bank         = 300.0
-		stake        = 1.0
-		wins         = 0.0
-		losses       = 0.0
-		prevDate     = None
+		bank             = 200.0
+		stake            = 1.0
+		wins             = 0.0
+		losses           = 0.0
+		prevDate         = None
 
-		prevResult   = None
-		prevStreak   = 0
-		currentStake = stake
+		maxLosingStreak  = 0
+		losingStreak     = 0
+		currentStake     = stake
+		prevLosses       = 0.0
 
 		fixtureBatch = []
 
 		for fixture in self.evalFixtures:
-			currentDate = fixture.getDate()
-			stdDev  = fixture.getStdDevHomeOdds()
-			avgOdds = fixture.getAvgHomeOdds()
+			currentDate   = fixture.getDate()
+			fixtureStd    = fixture.getStdDevHomeOdds()
+			fixtureOdds   = fixture.getWorstHomeOdds()
 			
 			if prevDate is None:
-				if self.valueMapping.isValueBet(avgOdds, stdDev) and avgOdds < 2.5:
+				if self.valueMapping.isValueBet(fixtureOdds, fixtureStd) and fixtureOdds < 2.5:
 					fixtureBatch.append(fixture)
 			elif currentDate == prevDate:
-				if self.valueMapping.isValueBet(avgOdds, stdDev) and avgOdds < 2.5:
+				if self.valueMapping.isValueBet(fixtureOdds, fixtureStd) and fixtureOdds < 2.5:
 					fixtureBatch.append(fixture)
 			else:
 				if len(fixtureBatch) > 0:
 					selectedFixture = self.valueMapping.getHighestValue(fixtureBatch)
+					selectedOdds    = selectedFixture.getWorstHomeOdds()
+
 					if selectedFixture.isHomeWin():
-						odds         = selectedFixture.getWorstHomeOdds()
-						bank        += ((odds*currentStake) - currentStake)
-						currentStake = stake
-						prevStreak   = 0.0
-						wins        += 1.0
-						prevResult   = True
+						currentSteak  = ((prevLosses + stake)/selectedOdds)
+						bank         -= currentSteak
+						bank         += (selectedOdds*currentSteak)
+						wins         += 1
+						prevLosses    = 0.0
 					else:
-						currentStake = prevStreak/f
-						bank   -= currentStake
-						losses += 1.0
+						currentSteak  = ((prevLosses + stake)/selectedOdds)
+						prevLosses   += currentSteak + stake
+						bank         -= currentSteak
+						losses       += 1
+						losingStreak = 1
+						if losingStreak > maxLosingStreak:
+							maxLosingStream = losingStreak
+						
+						print('losses',prevLosses)
+						#time.sleep(1)
+
+
 					print('{0},{1},{2} v {3},{4:.2f}, Stake:{5:.2f},Bank:{6:.2f}'.format(selectedFixture.getDate(), selectedFixture.getResult(), selectedFixture.getHomeTeam(), selectedFixture.getAwayTeam(), selectedFixture.getWorstHomeOdds(), currentStake, bank))
 
+				
 				fixtureBatch = []
-
-				if self.valueMapping.isValueBet(avgOdds, stdDev) and avgOdds < 2.5:
+				if self.valueMapping.isValueBet(fixtureOdds, fixtureStd) and fixtureOdds < 2.5:
 					fixtureBatch.append(fixture)
 					
 			prevDate = currentDate
 
-		print('Bank: {0:.2f}, Wins: {1:.0f}, Losses: {2:.2f}'.format(bank, wins, losses))
-
+		print('Bank: {0:.2f}, Wins: {1:.0f}, Losses: {2:.2f}, Max Losing Streak: {3:.2f}'.format(bank, wins, losses, maxLosingStreak))
 		
 
 

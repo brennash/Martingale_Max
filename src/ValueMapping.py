@@ -20,7 +20,7 @@ class ValueMapping:
 		self.stdList.append(stdDev)
 		self.resultList.append(result)
 
-	
+
 	def calculate(self):
 		sortedOdds = np.array(sorted(self.oddsList))
 		sortedStd  = np.array(sorted(self.stdList))
@@ -103,3 +103,7 @@ class ValueMapping:
 								break
 			return fixtureList[minIndex]
 			
+
+
+	def printMatrix(self):
+		print(self.valueList)
