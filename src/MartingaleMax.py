@@ -110,7 +110,7 @@ class MartingaleMax:
 
 	def processValueBets(self):
 
-		bank             = 200.0
+		bank             = 1000.0
 		stake            = 1.0
 		wins             = 0.0
 		losses           = 0.0
@@ -134,31 +134,37 @@ class MartingaleMax:
 			elif currentDate == prevDate:
 				if self.valueMapping.isValueBet(fixtureOdds, fixtureStd) and fixtureOdds < 2.5:
 					fixtureBatch.append(fixture)
+			# Process the batch of fixtures
 			else:
+				# Make sure there's something to process
 				if len(fixtureBatch) > 0:
 					selectedFixture = self.valueMapping.getHighestValue(fixtureBatch)
 					selectedOdds    = selectedFixture.getWorstHomeOdds()
 
+					# winnings    = odds * stake
+					# stake       = winnings / odds
+					# Where winnings are (stake * prevLosses) + stake 
+					if losingStreak > 0:
+						currentStake = ( (stake*losingStreak) + stake + prevLosses) / selectedOdds
+					else:
+						currentStake = ((2.0*stake)/selectedOdds)
+
+					bank -= currentStake
+
 					if selectedFixture.isHomeWin():
-						currentSteak  = ((prevLosses + stake)/selectedOdds)
-						bank         -= currentSteak
-						bank         += (selectedOdds*currentSteak)
+						bank         += (selectedOdds*currentStake)
 						wins         += 1
 						prevLosses    = 0.0
+						losingStreak  = 0
 					else:
-						currentSteak  = ((prevLosses + stake)/selectedOdds)
-						prevLosses   += currentSteak + stake
-						bank         -= currentSteak
 						losses       += 1
-						losingStreak = 1
+						prevLosses   += currentStake
+						losingStreak += 1
 						if losingStreak > maxLosingStreak:
-							maxLosingStream = losingStreak
-						
-						print('losses',prevLosses)
-						#time.sleep(1)
+							maxLosingStreak = losingStreak
 
+					print('{0},{1},{2} v {3},{4:.2f}, Stake:{5:.2f},Bank:{6:.2f},Losses:{7}'.format(selectedFixture.getDate(), selectedFixture.getResult(), selectedFixture.getHomeTeam(), selectedFixture.getAwayTeam(), selectedFixture.getWorstHomeOdds(), currentStake, bank, losingStreak))
 
-					print('{0},{1},{2} v {3},{4:.2f}, Stake:{5:.2f},Bank:{6:.2f}'.format(selectedFixture.getDate(), selectedFixture.getResult(), selectedFixture.getHomeTeam(), selectedFixture.getAwayTeam(), selectedFixture.getWorstHomeOdds(), currentStake, bank))
 
 				
 				fixtureBatch = []
