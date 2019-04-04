@@ -2,6 +2,7 @@ import os
 import re
 import csv
 import sys
+import math
 import time
 import random
 import datetime
@@ -110,15 +111,16 @@ class MartingaleMax:
 
 	def processValueBets(self):
 
-		bank             = 1000.0
-		stake            = 1.0
+		bank             = 200.0
+		gain             = 1.0
 		wins             = 0.0
 		losses           = 0.0
 		prevDate         = None
 
 		maxLosingStreak  = 0
+		maxStake         = 0.0
+
 		losingStreak     = 0
-		currentStake     = stake
 		prevLosses       = 0.0
 
 		fixtureBatch = []
@@ -140,40 +142,56 @@ class MartingaleMax:
 				if len(fixtureBatch) > 0:
 					selectedFixture = self.valueMapping.getHighestValue(fixtureBatch)
 					selectedOdds    = selectedFixture.getWorstHomeOdds()
+					selectedResult  = selectedFixture.getResult()
 
-					# winnings    = odds * stake
-					# stake       = winnings / odds
-					# Where winnings are (stake * prevLosses) + stake 
-					if losingStreak > 0:
-						currentStake = ( (stake*losingStreak) + stake + prevLosses) / selectedOdds
+					# winnings = (odds * stake) - stake
+					# winnings + stake = odds * stake
+					# winnings/stake + 1 = odds
+					# winnings/stake = (odds -1)
+					# 1/stake   = (odds-1)/winnings
+					# stake     = winnings/(odds-1)
+
+					if losingStreak == 0:
+						currentStake = gain/(selectedOdds-1.0)
 					else:
-						currentStake = ((2.0*stake)/selectedOdds)
+						currentStake = (prevLosses + losingStreak*gain) / (selectedOdds - 1.0)
 
-					bank -= currentStake
+					if currentStake > maxStake:
+						maxStake = currentStake
+
 
 					if selectedFixture.isHomeWin():
-						bank         += (selectedOdds*currentStake)
+						deltaGain     = ((selectedOdds*currentStake) - currentStake)
+						bank         += deltaGain
 						wins         += 1
-						prevLosses    = 0.0
+						prevLosses    = max(0.0, (prevLosses - deltaGain))
 						losingStreak  = 0
+
+						#print('WIN',bank,prevLosses,deltaGain,currentStake)
+						#time.sleep(0.5)
 					else:
+						bank         -= currentStake
 						losses       += 1
 						prevLosses   += currentStake
 						losingStreak += 1
 						if losingStreak > maxLosingStreak:
 							maxLosingStreak = losingStreak
 
-					print('{0},{1},{2} v {3},{4:.2f}, Stake:{5:.2f},Bank:{6:.2f},Losses:{7}'.format(selectedFixture.getDate(), selectedFixture.getResult(), selectedFixture.getHomeTeam(), selectedFixture.getAwayTeam(), selectedFixture.getWorstHomeOdds(), currentStake, bank, losingStreak))
+						#print('LOSS',bank,prevLosses,-1*currentStake,currentStake)
+						#time.sleep(0.5)
 
 
+					print('{0},{1:.2f},{2:.2f}'.format(selectedResult, bank, currentStake))
+					#time.sleep(1)
 				
+				# Add new fixture batch
 				fixtureBatch = []
 				if self.valueMapping.isValueBet(fixtureOdds, fixtureStd) and fixtureOdds < 2.5:
 					fixtureBatch.append(fixture)
 					
 			prevDate = currentDate
 
-		print('Bank: {0:.2f}, Wins: {1:.0f}, Losses: {2:.2f}, Max Losing Streak: {3:.2f}'.format(bank, wins, losses, maxLosingStreak))
+		print('Bank: {0:.2f}, Wins: {1:.0f}, Losses: {2:.2f}, Max Losing Streak: {3:.2f}, Max Stake: {4:.2f}'.format(bank, wins, losses, maxLosingStreak, maxStake))
 		
 
 
